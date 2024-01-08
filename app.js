@@ -1,52 +1,45 @@
-const express = require('express');
+var express=require("express");
+var bodyParser=require("body-parser");
+
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
+mongoose.connect('mongodb://localhost:27017/signup');
+var db=mongoose.connection;
+db.on('error', console.log.bind(console, "connection error"));
+db.once('open', function(callback){
+   console.log("connection succeeded");
+})
+var app=express()
 
-const app = express();
+app.use(bodyParser.json());
+app.use(express.static('public'));
+app.use(bodyParser.urlencoded({
+   extended: true
+}));
 
-// MongoDB connection setup
-mongoose.connect('mongodb://localhost:27017/expenseTracker', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB');
-});
+app.post('/sign_up', function(req,res){
+   var name = req.body.name;
+   var email =req.body.email;
+   var pass = req.body.password;
+   var phone =req.body.phone;
 
-// Expense schema and model
-const expenseSchema = new mongoose.Schema({
-  description: String,
-  amount: Number,
-  date: Date,
-});
-const Expense = mongoose.model('Expense', expenseSchema);
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public')); // Serve static files from 'public' folder
-
-app.post('/add_expense', (req, res) => {
-   const { description, amount, date } = req.body;
- 
-   const newExpense = new Expense({
-     description,
-     amount,
-     date,
+   var data = {
+      "name": name,
+      "email":email,
+      "password":pass,
+      "phone":phone
+   }
+   db.collection('details').insertOne(data,function(err, collection){
+   if (err) throw err;
+      console.log("Record inserted Successfully");
    });
- 
-   newExpense.save((err, savedExpense) => {
-     if (err) {
-       console.error('Error saving expense:', err);
-       return res.status(500).send('Error saving expense');
-     }
-     console.log('Expense added:', savedExpense);
-     res.status(200).send('Expense added successfully');
-   });
- });
+   return res.redirect('success.html');
+})
 
-// Start server
-const PORT = process.env.PORT || 3090;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.get('/',function(req,res){
+   res.set({
+      'Access-control-Allow-Origin': '*'
+   });
+   return res.redirect('index.html');
+}).listen(3005)
+
+console.log("server listening at port 3000");
